@@ -1,8 +1,8 @@
 # Function: crawl the basic information of the books from the list of goodreads
-# Input: id number and name of a list, e.g 1.Best_Books_Ever
-# Output: csv file containing book title, author, and cover(base64).
+# Input: id number with the name of a list, e.g 1.Best_Books_Ever
+# Output: csv file containing book title, author, Rates, ave rate, and cover(base64).
 # Author: Renqing Luo
-# Date: 2022/6/11
+# Date: 2022/6/12
 # Statue: Complete
 
 import base64
@@ -20,20 +20,25 @@ class Book(object):
                           'Chrome/87.0.4280.66 Safari/537.36 '
         }
         self.url = 'https://www.goodreads.com/list/show/'
-        self.book_info = []  # title and author
+        self.book_name = []  # title and author
         self.book_cover = []
+        self.book_ave_rate = []
+        self.book_rate_nums = []
+        self.soup = None
 
     def get_soup(self):
         print(self.url)
         response = requests.get(self.url, headers=self.headers)
         html = response.content.decode('utf-8')
-        return BeautifulSoup(html, 'lxml')
+        self.soup = BeautifulSoup(html, 'lxml')
 
-    def get_info(self, soup):
-        names = soup.find_all('span', itemprop="name")
+    def get_name(self):
+        names = self.soup.find_all('span', itemprop="name")
         for name in names:
-            self.book_info.append(name.string)
-        covers = soup.find_all('img', {"class": "bookCover"})
+            self.book_name.append(name.string)
+
+    def get_cover(self):
+        covers = self.soup.find_all('img', {"class": "bookCover"})
         for img in covers:
             src = img.get('src')
             cover_img = requests.get(src, headers=self.headers).content
@@ -42,23 +47,38 @@ class Book(object):
             print(img.get('alt'))
             time.sleep(random.random())
 
+    def get_rate(self):
+        rates = self.soup.find_all('span', {"class": "minirating"})
+        for rate in rates:
+            self.book_ave_rate.append(rate.text[:4])
+            self.book_rate_nums.append(rate.text[18:-8])
+
+    def get_info(self):
+        self.get_soup()
+        self.get_name()
+        self.get_cover()
+        self.get_rate()
+
+    def get_total_page(self):
+        return int(self.soup.select('.pagination a')[-2].string)
+
     def save_info(self, list_name):
-        title = self.book_info[::2]
-        author = self.book_info[1::2]
-        Book_dict = {'Title': title, 'Author': author, 'Cover': self.book_cover}
-        books = pd.DataFrame(Book_dict)
+        title = self.book_name[::2]
+        author = self.book_name[1::2]
+        book_dict = {'Title': title, 'Author': author, 'Cover': self.book_cover,
+                     'Average Rate': self.book_ave_rate, 'Rates': self.book_rate_nums}
+        books = pd.DataFrame(book_dict)
         books.to_csv(list_name + '.csv', index=False)
 
     def main(self):
         list_name = input('Listopia: ')
         self.url += list_name
         ori_url = self.url
-        soup = self.get_soup()
-        pages = int(soup.select('.pagination a')[-2].string)
-        self.get_info(soup)
+        self.get_info()
+        pages = self.get_total_page()
         for page in range(2, pages + 1):
             self.url = ori_url + '?page=' + str(page)
-            self.get_info(self.get_soup())
+            self.get_info()
         self.save_info(list_name)
 
 
