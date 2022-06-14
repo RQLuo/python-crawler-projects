@@ -2,9 +2,10 @@
 # Input: id number and name of a list, e.g 1.Best_Books_Ever
 # Output: csv file containing book title, author, and cover(base64).
 # Author: Renqing Luo
-# Date: 2022/6/12
-# Statue: Complete
+# Date: 2022/6/14
+# Statue: Incomplete
 
+import os
 import re
 import base64
 import random
@@ -64,26 +65,47 @@ class Book(object):
     def get_total_page(self):
         return int(self.soup.select('.pagination a')[-2].string)
 
-    def save_info(self, list_name):
+    def save_info(self, list_name, page):
+        os.makedirs(list_name, exist_ok=True)
         title = self.book_name[::2]
         author = self.book_name[1::2]
         book_dict = {'Title': title, 'Author': author, 'Cover': self.book_cover,
                      'Average Rate': self.book_ave_rate, 'Rates': self.book_rate_nums}
         books = pd.DataFrame(book_dict)
-        books.to_csv(list_name + '.csv', index=False)
+        path = os.path.join(list_name, str(page) + '.csv')
+        books.to_csv(path, index=False)
 
-    def main(self):
+    def init_info(self):
+        self.book_name = []
+        self.book_cover = []
+        self.book_ave_rate = []
+        self.book_rate_nums = []
+
+    def init_record(self):
         list_name = input('Listopia: ')
         self.url += list_name
         ori_url = self.url
         self.get_info()
         pages = self.get_total_page()
+        return ori_url, pages, list_name
+
+    def record_all_in_one(self):
+        ori_url, pages, list_name = self.init_record()
         for page in range(2, pages + 1):
             self.url = ori_url + '?page=' + str(page)
             self.get_info()
-        self.save_info(list_name)
+        self.save_info(list_name, list_name)
+
+    def record_by_page(self):
+        ori_url, pages, list_name = self.init_record()
+        self.save_info(list_name, 1)
+        for page in range(2, pages + 1):
+            self.init_info()
+            self.url = ori_url + '?page=' + str(page)
+            self.get_info()
+            self.save_info(list_name, page)
 
 
 if __name__ == '__main__':
     book = Book()
-    book.main()
+    book.record_by_page()
