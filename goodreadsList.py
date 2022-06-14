@@ -1,10 +1,11 @@
 # Function: crawl the basic information of the books from the list of goodreads
-# Input: id number with the name of a list, e.g 1.Best_Books_Ever
-# Output: csv file containing book title, author, Rates, ave rate, and cover(base64).
+# Input: id number and name of a list, e.g 1.Best_Books_Ever
+# Output: csv file containing book title, author, and cover(base64).
 # Author: Renqing Luo
 # Date: 2022/6/12
 # Statue: Complete
 
+import re
 import base64
 import random
 import time
@@ -50,8 +51,9 @@ class Book(object):
     def get_rate(self):
         rates = self.soup.find_all('span', {"class": "minirating"})
         for rate in rates:
-            self.book_ave_rate.append(rate.text[:4])
-            self.book_rate_nums.append(rate.text[18:-8])
+            rate_info = re.findall(r"\d+\.?\d*", rate.text)
+            self.book_ave_rate.append(rate_info[0])
+            self.book_rate_nums.append(rate_info[1])
 
     def get_info(self):
         self.get_soup()
