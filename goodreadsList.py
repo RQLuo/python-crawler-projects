@@ -8,23 +8,25 @@
 
 import os
 import re
+import sys
 import base64
 import random
 import time
 import requests
+import json
 import pandas as pd
 from bs4 import BeautifulSoup
 
 
 class BookList(object):
-    def __init__(self) -> object:
+    def __init__(self):
         self.headers = {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
                           'Chrome/87.0.4280.66 Safari/537.36 '
         }
         self.url = 'https://www.goodreads.com/list/show/'
         self.book_name = []  # title and author
-        self.book_cover = [] # 
+        self.book_cover = []  # base64 as string
         self.book_ave_rate = []
         self.book_rate_nums = []
         self.soup = None
@@ -45,7 +47,7 @@ class BookList(object):
         for img in covers:
             src = img.get('src')
             cover_img = requests.get(src, headers=self.headers).content
-            cover_base = base64.b64encode(cover_img) # img to string
+            cover_base = base64.b64encode(cover_img)  # img to string
             self.book_cover.append(cover_base)
             print(img.get('alt'))
             time.sleep(random.random())
@@ -53,7 +55,7 @@ class BookList(object):
     def get_rate(self):
         rates = self.soup.find_all('span', {"class": "minirating"})
         for rate in rates:
-            rate_info = re.findall(r"\d+\.?\d*", rate.text) # record digits only
+            rate_info = re.findall(r"\d+\.?\d*", rate.text)  # record digits only
             self.book_ave_rate.append(rate_info[0])
             self.book_rate_nums.append(rate_info[1])
 
@@ -72,9 +74,18 @@ class BookList(object):
         author = self.book_name[1::2]
         book_dict = {'Title': title, 'Author': author, 'Cover': self.book_cover,
                      'Average Rate': self.book_ave_rate, 'Rates': self.book_rate_nums}
-        books = pd.DataFrame(book_dict)
-        path = os.path.join(list_name, str(page) + '.csv')
-        books.to_csv(path, index=False)
+        try:
+            save_json = sys.argv[2]
+        except IndexError:
+            save_json = ''
+        if save_json == 'json':
+            json_file = open(os.path.join(list_name, str(page) + '.json'), "w")
+            json.dump(book_dict, json_file)
+            json_file.close()
+        else:
+            books = pd.DataFrame(book_dict)
+            path = os.path.join(list_name, str(page) + '.csv')
+            books.to_csv(path, index=False)
 
     def init_info(self):
         self.book_name = []
@@ -83,11 +94,17 @@ class BookList(object):
         self.book_rate_nums = []
 
     def init_record(self):
-        list_name = input('Listopia: ')
+        try:
+            list_name = sys.argv[1]
+        except IndexError:
+            list_name = input('Listopia: ')
         self.url += list_name
         ori_url = self.url
         self.get_info()
-        pages = self.get_total_page()
+        try:
+            pages = self.get_total_page()
+        except IndexError:
+            pages = 1
         return ori_url, pages, list_name
 
     def record_all_in_one(self):
@@ -109,5 +126,5 @@ class BookList(object):
 
 if __name__ == '__main__':
     book_list = BookList()
-    #book_list.record_by_page()
+    # book_list.record_by_page()
     book_list.record_all_in_one()
