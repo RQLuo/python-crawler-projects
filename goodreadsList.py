@@ -1,6 +1,7 @@
 # Function: crawl the basic information of the books from the list of goodreads
 # Input: id number and name of a list, e.g 1.Best_Books_Ever
-# Output: csv file containing book title, author, and cover(base64).
+# Output: a csv file or csv files (by list web pages) containing
+# Output: book title, author, ave_rate, rate numbers, and cover(base64).
 # Author: Renqing Luo
 # Date: 2022/6/14
 # Statue: Incomplete
@@ -15,7 +16,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 
 
-class Book(object):
+class BookList(object):
     def __init__(self) -> object:
         self.headers = {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -23,7 +24,7 @@ class Book(object):
         }
         self.url = 'https://www.goodreads.com/list/show/'
         self.book_name = []  # title and author
-        self.book_cover = []
+        self.book_cover = [] # 
         self.book_ave_rate = []
         self.book_rate_nums = []
         self.soup = None
@@ -44,7 +45,7 @@ class Book(object):
         for img in covers:
             src = img.get('src')
             cover_img = requests.get(src, headers=self.headers).content
-            cover_base = base64.b64encode(cover_img)
+            cover_base = base64.b64encode(cover_img) # img to string
             self.book_cover.append(cover_base)
             print(img.get('alt'))
             time.sleep(random.random())
@@ -52,7 +53,7 @@ class Book(object):
     def get_rate(self):
         rates = self.soup.find_all('span', {"class": "minirating"})
         for rate in rates:
-            rate_info = re.findall(r"\d+\.?\d*", rate.text)
+            rate_info = re.findall(r"\d+\.?\d*", rate.text) # record digits only
             self.book_ave_rate.append(rate_info[0])
             self.book_rate_nums.append(rate_info[1])
 
@@ -107,5 +108,6 @@ class Book(object):
 
 
 if __name__ == '__main__':
-    book = Book()
-    book.record_by_page()
+    book_list = BookList()
+    #book_list.record_by_page()
+    book_list.record_all_in_one()
