@@ -17,7 +17,7 @@ save as json
 python goodreadsList.py 1.Best_Books_Ever json
 ```
 
-if the listopia left blank, it will as you type in
+if the listopia left blank, it will ask you type in
 
 Listopia: 
 
